@@ -1,60 +1,61 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <title>حبيبة وتكرتوش 🤶</title>
+  <meta charset="UTF-8">
+  <title>مساعد صوتي</title>
   <style>
-    body {
-      font-family: "Tahoma", sans-serif;
-      background-color: #f9f9f9;
-      text-align: center;
-      padding: 50px;
-    }
-    button {
-      font-size: 20px;
-      padding: 10px 20px;
-      margin: 10px;
-    }
-    .reply {
-      margin-top: 20px;
-      font-size: 22px;
-      color: #333;
-    }
+    body { font-family: Arial; padding: 20px; text-align: center; }
+    button { font-size: 18px; padding: 10px 20px; margin-top: 20px; }
+    #response { margin-top: 20px; font-size: 20px; color: #333; }
   </style>
 </head>
 <body>
-  <h1>🤶 بوت حبيبة وتكرتوش</h1>
-  <button onclick="startRecording()">🎤 تكلم مع حبيبة</button>
-  <div class="reply" id="reply"></div>
+  <h1>تحدث مع المساعد الذكي 🎤</h1>
+  <button onclick="startListening()">🎙️ اضغط وتحدث</button>
+  <div id="response"></div>
+  <audio id="audio" controls style="display:none;"></audio>
 
   <script>
-    let serverUrl = "https://chatbot-server-nswo.onrender.com"; // ← غيّرها برابطك
+    const responseDiv = document.getElementById("response");
+    const audioElement = document.getElementById("audio");
 
-    function startRecording() {
-      const recognition = new webkitSpeechRecognition() || new SpeechRecognition();
-      recognition.lang = 'ar-DZ';
+    function startListening() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = "ar-SA";
+      recognition.start();
 
-      recognition.onresult = async function(event) {
-        let text = event.results[0][0].transcript;
-        document.getElementById("reply").innerText = `🗣️ انت قلت: ${text}`;
-
-        const res = await fetch(`${serverUrl}/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text })
-        });
-
-        const data = await res.json();
-        if (data.audio) {
-          const audio = new Audio(`${serverUrl}/audio/${data.audio}`);
-          document.getElementById("reply").innerText = `👵 حبيبة قالت: ${data.reply}`;
-          audio.play();
-        } else {
-          document.getElementById("reply").innerText = "🔴 خطأ: لم يصل رد.";
-        }
+      recognition.onresult = function (event) {
+        const transcript = event.results[0][0].transcript;
+        responseDiv.innerHTML = "🗣️ قلت: " + transcript;
+        sendMessage(transcript);
       };
 
-      recognition.start();
+      recognition.onerror = function (event) {
+        responseDiv.innerHTML = "❌ حدث خطأ: " + event.error;
+      };
+    }
+
+    function sendMessage(message) {
+      fetch("https://chatbot-server-nswo.onrender.com/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: message })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.reply) {
+          responseDiv.innerHTML += "<br>🤖 البوت: " + data.reply;
+        }
+        if (data.audio_url) {
+          audioElement.src = "https://chatbot-server-nswo.onrender.com" + data.audio_url;
+          audioElement.style.display = "block";
+          audioElement.play();
+        }
+      })
+      .catch(err => {
+        responseDiv.innerHTML = "❌ فشل الاتصال بالخادم";
+        console.error(err);
+      });
     }
   </script>
 </body>
