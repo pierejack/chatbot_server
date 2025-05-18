@@ -1,38 +1,40 @@
 from flask import Flask, request, jsonify, send_from_directory, render_template
 from flask_cors import CORS
-import openai
 from gtts import gTTS
+import openai
 import os
 import uuid
 
+# إعداد التطبيق
 app = Flask(__name__)
 CORS(app)
 
-# تأكد أنك تضع مفتاحك هنا
-openai.api_key = "YOUR_OPENAI_API_KEY"
+# مفتاح OpenAI - تأكد أنك وضعته في بيئة التشغيل على Render
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# مجلد لحفظ الملفات الصوتية
-AUDIO_FOLDER = "static/audio"
-os.makedirs(AUDIO_FOLDER, exist_ok=True)
+# إنشاء مجلد الصوت إن لم يكن موجودًا
+os.makedirs("static/audio", exist_ok=True)
 
+# الصفحة الرئيسية (اختياري)
 @app.route("/")
-def home():
-    return "الخادم يعمل بنجاح. اذهب إلى الواجهة الأمامية للتحدث مع البوت."
+def index():
+    return "<h2>Chatbot Server is Running</h2>"
 
+# نقطة المحادثة مع البوت
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
         data = request.get_json()
-        message = data.get("message", "").strip()
-        
-        if not message:
-            return jsonify({"error": "الرسالة فارغة"}), 400
+        message = data.get("message")
 
-        # استدعاء ChatGPT
+        if not message:
+            return jsonify({"error": "الرسالة غير موجودة"}), 400
+
+        # استجابة GPT
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # أو gpt-4 حسب المتاح
+            model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "أنت مساعد ودود وذكي."},
+                {"role": "system", "content": "أنت مساعد ذكي يتحدث العربية."},
                 {"role": "user", "content": message}
             ]
         )
@@ -40,23 +42,27 @@ def chat():
         reply = response["choices"][0]["message"]["content"]
 
         # تحويل الرد إلى صوت
-        tts = gTTS(text=reply, lang="ar")
         filename = f"{uuid.uuid4()}.mp3"
-        filepath = os.path.join(AUDIO_FOLDER, filename)
-        tts.save(filepath)
+        audio_path = os.path.join("static/audio", filename)
 
-        return jsonify({
-            "reply": reply,
-            "audio_url": f"/audio/{filename}"
-        })
+        try:
+            tts = gTTS(text=reply, lang="ar")
+            tts.save(audio_path)
+        except Exception as e:
+            print("gTTS error:", e)
+            return jsonify({"error": "فشل في تحويل الرد إلى صوت."}), 500
 
+        return jsonify({"reply": reply, "audio": f"/audio/{filename}"})
     except Exception as e:
-        print("حدث خطأ:", e)
+        print("Error:", e)
         return jsonify({"error": "حدث خطأ في الخادم."}), 500
 
+# تقديم ملفات الصوت عند الطلب
 @app.route("/audio/<filename>")
 def audio(filename):
-    return send_from_directory(AUDIO_FOLDER, filename)
+    return send_from_directory("static/audio", filename)
 
+# تشغيل التطبيق على Render
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(debug=False, host="0.0.0.0", port=port)
