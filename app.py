@@ -5,9 +5,13 @@ import openai
 import os
 import uuid
 
+
+os.makedirs('static/audio', exist_ok=True)
+
 # إعداد التطبيق
 app = Flask(__name__)
 CORS(app)
+
 
 # مفتاح OpenAI - تأكد أنك وضعته في بيئة التشغيل على Render
 openai.api_key = os.getenv("OPENAI_API_KEY")
