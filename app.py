@@ -1,37 +1,44 @@
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 import openai
-from gtts import gTTS
 import os
+from gtts import gTTS
 import uuid
+
+app = Flask(__name__)
+CORS(app)
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-app = Flask(__name__)
-AUDIO_DIR = "static"
-os.makedirs(AUDIO_DIR, exist_ok=True)
-
-@app.route('/chat', methods=['POST'])
+@app.route("/chat", methods=["POST"])
 def chat():
-    user_text = request.json.get("message")
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "أنت عجوز جزائرية عندها 68 سنة، إسمك حبيبة وتكرتوش، عندك حس الدعابة، وتتكلمي باللهجة الجزائرية، جاوبي بطريقة ضاحكة وممتعة."},
-            {"role": "user", "content": user_text}
-        ]
-    )
-    bot_text = response['choices'][0]['message']['content']
+    data = request.get_json()
+    message = data.get("message", "")
 
-    tts = gTTS(bot_text, lang='ar')
-    filename = f"{uuid.uuid4()}.mp3"
-    filepath = os.path.join(AUDIO_DIR, filename)
-    tts.save(filepath)
+    prompt = f"""
+    أنت شخصية جزائرية عجوز مرحة اسمها "حبيبة وتكرتوش"، عندك 68 سنة، تحبي تضحكي وتردي بنصائح وطرائف.
+    جاوب باللهجة الجزائرية، بطريقة مضحكة ومرحة مثل جداتنا، واستعملي تعابير شعبية كيما "يا وليدي"، "وش راك؟"، "آه يا زمان".
+    سؤالي: {message}
+    """
 
-    return jsonify({"text": bot_text, "audio": filename})
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=150
+        )
+        reply = response.choices[0].message.content.strip()
 
-@app.route('/audio/<filename>', methods=['GET'])
-def get_audio(filename):
-    return send_from_directory(AUDIO_DIR, filename)
+        # تحويل إلى صوت باللهجة الجزائرية (نستخدم gTTS للدارجة)
+        tts = gTTS(reply, lang='ar')
+        audio_filename = f"audio_{uuid.uuid4().hex}.mp3"
+        audio_path = os.path.join("static/audio", audio_filename)
+        tts.save(audio_path)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+        return jsonify({"reply": reply, "audio": audio_filename})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/audio/<filename>")
+def audio(filename):
+    return send_from_directory("static/audio", filename)

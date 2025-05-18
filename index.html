@@ -1,70 +1,60 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>حبيبة وتكرتوش</title>
+  <meta charset="UTF-8" />
+  <title>حبيبة وتكرتوش 🤶</title>
   <style>
     body {
-      background-color: #f2f2f2;
-      font-family: 'Arial', sans-serif;
+      font-family: "Tahoma", sans-serif;
+      background-color: #f9f9f9;
       text-align: center;
-      padding: 30px;
-      direction: rtl;
-    }
-    h1 {
-      color: #333;
+      padding: 50px;
     }
     button {
-      background-color: #00a878;
-      color: white;
-      border: none;
-      padding: 15px 25px;
-      font-size: 18px;
-      cursor: pointer;
-      border-radius: 10px;
-      margin-top: 20px;
+      font-size: 20px;
+      padding: 10px 20px;
+      margin: 10px;
     }
-    button:hover {
-      background-color: #007f5f;
+    .reply {
+      margin-top: 20px;
+      font-size: 22px;
+      color: #333;
     }
   </style>
 </head>
 <body>
-  <h1>👵 مرحبا بيك مع حبيبة وتكرتوش</h1>
-  <p>هدر معايا بالمكروفون وانا نجاوبك 😄</p>
-  <button onclick="recordAndSend()">🎤 هدر معايا</button>
+  <h1>🤶 بوت حبيبة وتكرتوش</h1>
+  <button onclick="startRecording()">🎤 تكلم مع حبيبة</button>
+  <div class="reply" id="reply"></div>
 
   <script>
-    async function recordAndSend() {
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.lang = 'ar-DZ'; // اللهجة الجزائرية
+    let serverUrl = "https://chatbot-server-nswo.onrender.com"; // ← غيّرها برابطك
 
-      recognition.start();
+    function startRecording() {
+      const recognition = new webkitSpeechRecognition() || new SpeechRecognition();
+      recognition.lang = 'ar-DZ';
 
-      recognition.onresult = async function (event) {
-        const userText = event.results[0][0].transcript;
-        console.log("📣 قلت:", userText);
+      recognition.onresult = async function(event) {
+        let text = event.results[0][0].transcript;
+        document.getElementById("reply").innerText = `🗣️ انت قلت: ${text}`;
 
-        const response = await fetch('https://chatbot-server-nswo.onrender.com/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ message: userText })
+        const res = await fetch(`${serverUrl}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text })
         });
 
-        const data = await response.json();
-        console.log("🤖 الرد:", data.reply);
-
-        // شغّل الصوت
-        const audio = new Audio(`https://chatbot-server-nswo.onrender.com/audio/${data.audio}`);
-        audio.play();
+        const data = await res.json();
+        if (data.audio) {
+          const audio = new Audio(`${serverUrl}/audio/${data.audio}`);
+          document.getElementById("reply").innerText = `👵 حبيبة قالت: ${data.reply}`;
+          audio.play();
+        } else {
+          document.getElementById("reply").innerText = "🔴 خطأ: لم يصل رد.";
+        }
       };
 
-      recognition.onerror = function (event) {
-        alert('❌ ما قدرتش نسمعك، جرب مرة أخرى');
-        console.error(event.error);
-      };
+      recognition.start();
     }
   </script>
 </body>
