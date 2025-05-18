@@ -1,32 +1,71 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-    <meta charset="UTF-8">
-    <title>حبيبة وتكرتوش</title>
-    <style>
-        body { font-family: Arial; text-align: center; padding: 20px; background: #fef5e7; }
-        button { padding: 10px 20px; font-size: 18px; margin: 10px; }
-        #response { margin-top: 20px; font-size: 20px; }
-    </style>
+  <meta charset="UTF-8">
+  <title>حبيبة وتكرتوش</title>
+  <style>
+    body {
+      background-color: #f2f2f2;
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      padding: 30px;
+      direction: rtl;
+    }
+    h1 {
+      color: #333;
+    }
+    button {
+      background-color: #00a878;
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #007f5f;
+    }
+  </style>
 </head>
 <body>
-    <h1>👵 حبيبة وتكرتوش تهدر معاك</h1>
-    <button onclick="startRecording()">🎤 هدر معايا</button>
-    <div id="response"></div>
+  <h1>👵 مرحبا بيك مع حبيبة وتكرتوش</h1>
+  <p>هدر معايا بالمكروفون وانا نجاوبك 😄</p>
+  <button onclick="recordAndSend()">🎤 هدر معايا</button>
 
-    <script>
-        async function startRecording() {
-            const text = prompt("كتب واش هدرت باش نبعثه للـ bot");
-            const res = await fetch('https://chatbot-server-nswo.onrender.com/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: text })
-            });
-            const data = await res.json();
-            document.getElementById('response').innerText = data.text;
-            const audio = new Audio('https://chatbot-server-nswo.onrender.com/audio/' + data.audio);
-            audio.play();
-        }
-    </script>
+  <script>
+    async function recordAndSend() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'ar-DZ'; // اللهجة الجزائرية
+
+      recognition.start();
+
+      recognition.onresult = async function (event) {
+        const userText = event.results[0][0].transcript;
+        console.log("📣 قلت:", userText);
+
+        const response = await fetch('https://chatbot-server-nswo.onrender.com/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ message: userText })
+        });
+
+        const data = await response.json();
+        console.log("🤖 الرد:", data.reply);
+
+        // شغّل الصوت
+        const audio = new Audio(`https://chatbot-server-nswo.onrender.com/audio/${data.audio}`);
+        audio.play();
+      };
+
+      recognition.onerror = function (event) {
+        alert('❌ ما قدرتش نسمعك، جرب مرة أخرى');
+        console.error(event.error);
+      };
+    }
+  </script>
 </body>
 </html>
