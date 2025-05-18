@@ -17,14 +17,14 @@
     <script>
         async function startRecording() {
             const text = prompt("كتب واش هدرت باش نبعثه للـ bot");
-            const res = await fetch('https://YOUR_RENDER_URL/chat', {
+            const res = await fetch('https://chatbot-server-nswo.onrender.com/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: text })
             });
             const data = await res.json();
             document.getElementById('response').innerText = data.text;
-            const audio = new Audio('https://YOUR_RENDER_URL/audio/' + data.audio);
+            const audio = new Audio('https://chatbot-server-nswo.onrender.com/audio/' + data.audio);
             audio.play();
         }
     </script>
