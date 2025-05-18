@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>حبيبة وتكرتوش</title>
+    <style>
+        body { font-family: Arial; text-align: center; padding: 20px; background: #fef5e7; }
+        button { padding: 10px 20px; font-size: 18px; margin: 10px; }
+        #response { margin-top: 20px; font-size: 20px; }
+    </style>
+</head>
+<body>
+    <h1>👵 حبيبة وتكرتوش تهدر معاك</h1>
+    <button onclick="startRecording()">🎤 هدر معايا</button>
+    <div id="response"></div>
+
+    <script>
+        async function startRecording() {
+            const text = prompt("كتب واش هدرت باش نبعثه للـ bot");
+            const res = await fetch('https://YOUR_RENDER_URL/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text })
+            });
+            const data = await res.json();
+            document.getElementById('response').innerText = data.text;
+            const audio = new Audio('https://YOUR_RENDER_URL/audio/' + data.audio);
+            audio.play();
+        }
+    </script>
+</body>
+</html>
